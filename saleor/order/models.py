@@ -62,9 +62,10 @@ class Order(models.Model):
     total_net = MoneyField(
         currency=settings.DEFAULT_CURRENCY, max_digits=12, decimal_places=2,
         blank=True, null=True)
-    total_tax = MoneyField(
+    total_gross = MoneyField(
         currency=settings.DEFAULT_CURRENCY, max_digits=12, decimal_places=2,
         blank=True, null=True)
+    total = TaxedMoneyField(net_field='total_net', gross_field='total_gross')
     voucher = models.ForeignKey(
         Voucher, null=True, related_name='+', on_delete=models.SET_NULL)
     discount_amount = MoneyField(
@@ -154,17 +155,6 @@ class Order(models.Model):
     def get_status_display(self):
         """Order status display text."""
         return dict(OrderStatus.CHOICES)[self.status]
-
-    @property
-    def total(self):
-        if self.total_net is not None:
-            gross = self.total_net + self.total_tax
-            return TaxedMoney(net=self.total_net, gross=gross)
-
-    @total.setter
-    def total(self, price):
-        self.total_net = price.net
-        self.total_tax = price.tax
 
     def get_subtotal(self):
         subtotal_iterator = (line.get_total() for line in self.get_lines())
